@@ -17,6 +17,7 @@ describe("Connection", () => {
   test("Can retrieve a movie by id", async () => {
     const id = "573a13a6f29313caabd17bd5"
     const movie = await MoviesDAO.getMovieByID(id)
+    // console.log(movie)
     expect(movie.title).toEqual("Once Upon a Time in Mexico")
   })
 
