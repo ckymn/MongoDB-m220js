@@ -26,13 +26,10 @@ require("dotenv").config()
     })
     const mflix = client.db(process.env.MFLIX_NS)
 
-    // TODO: Create the proper predicate and projection
-    // add a predicate that checks that the `lastupdated` field exists, and then
-    // check that its type is a string
-    // a projection is not required, but may help reduce the amount of data sent
-    // over the wire!
-    const predicate = { somefield: { $someOperator: true } }
-    const projection = {}
+    const predicate = { lastupdated: { $exists: true, $type: "string" } }
+    // we use the projection here to only return the _id and lastupdated fields
+    const projection = { lastupdated: 1 }
+
     const cursor = await mflix
       .collection("movies")
       .find(predicate, projection)
@@ -41,21 +38,28 @@ require("dotenv").config()
       updateOne: {
         filter: { _id: ObjectId(_id) },
         update: {
-          $set: { lastupdated: new Date(Date.parse(lastupdated)) },
+          $set: { lastupdated: Date.parse(lastupdated) },
         },
       },
     }))
+    // What's the strange "\x1b[32m"? It's coloring. 31 is red, 32 is green
     console.log(
       "\x1b[32m",
       `Found ${moviesToMigrate.length} documents to update`,
     )
-    // TODO: Complete the BulkWrite statement below
-    const { modifiedCount } = await "some bulk operation"
+    // Here's where we dispatch the bulk update. We destructure the
+    // modifiedCount key out of the result
+
+    const { modifiedCount } = await mflix
+      .collection("movies")
+      .bulkWrite(moviesToMigrate)
 
     console.log("\x1b[32m", `${modifiedCount} documents updated`)
     client.close()
     process.exit(0)
   } catch (e) {
+    // check to see if the error was a MongoError and specifically a
+    // Invalid Operation error, meaning no documents to update
     if (
       e instanceof MongoError &&
       e.message.slice(0, "Invalid Operation".length) === "Invalid Operation"
